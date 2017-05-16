@@ -1,10 +1,39 @@
 <?php
+
 error_reporting(E_ALL);
 set_time_limit(0);// 设置超时时间为无限,防止超时
 date_default_timezone_set('Asia/shanghai');
 
+
+
+/**
+ * 测试代码段
+ */
+
+//echo ord('fsfdfsf');
+
+// echo pack('H*', 10);
+
+// $dechex = dechex(65025);
+
+// var_dump($dechex);
+
+// $length = strlen($dechex);
+
+// var_dump('length:'.$length);
+// die;
+
+
+if(!function_exists('posix_getpwuid'))
+{
+    function posix_getpwuid()
+    {
+        return get_current_user();
+    }
+}
+
 class WebSocket {
-    const LOG_PATH = '/tmp/';
+    const LOG_PATH = './';
     const LISTEN_SOCKET_NUM = 9;
 
     /**
@@ -40,7 +69,7 @@ class WebSocket {
         }
 
         $this->sockets[0] = ['resource' => $this->master];
-        $pid = posix_getpid();
+        $pid = get_current_user();
         $this->debug(["server: {$this->master} started,pid: {$pid}"]);
 
         while (true) {
@@ -74,7 +103,12 @@ class WebSocket {
             // 如果可读的是服务器socket,则处理连接逻辑
             if ($socket == $this->master) {
                 $client = socket_accept($this->master);
-                // 创建,绑定,监听后accept函数将会接受socket要来的连接,一旦有一个连接成功,将会返回一个新的socket资源用以交互,如果是一个多个连接的队列,只会处理第一个,如果没有连接的话,进程将会被阻塞,直到连接上.如果用set_socket_blocking或socket_set_noblock()设置了阻塞,会返回false;返回资源后,将会持续等待连接。
+                // 创建,绑定,监听后accept函数将会接受socket要来的连接,
+                // 一旦有一个连接成功,将会返回一个新的socket资源用以交互,
+                // 如果是一个多个连接的队列,只会处理第一个,
+                // 如果没有连接的话,进程将会被阻塞,直到连接上.
+                // 如果用set_socket_blocking或socket_set_noblock()设置了阻塞,会返回false;
+                // 返回资源后,将会持续等待连接。
                 if (false === $client) {
                     $this->error([
                         'err_accept',
@@ -101,7 +135,6 @@ class WebSocket {
                 }
                 array_unshift($recv_msg, 'receive_msg');
                 $msg = self::dealMsg($socket, $recv_msg);
-
                 $this->broadcast($msg);
             }
         }
@@ -154,7 +187,6 @@ class WebSocket {
         // 获取到客户端的升级密匙
         $line_with_key = substr($buffer, strpos($buffer, 'Sec-WebSocket-Key:') + 18);
         $key = trim(substr($line_with_key, 0, strpos($line_with_key, "\r\n")));
-
         // 生成升级密匙,并拼接websocket升级头
         $upgrade_key = base64_encode(sha1($key . "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", true));// 升级key的算法
         $upgrade_message = "HTTP/1.1 101 Switching Protocols\r\n";
@@ -162,7 +194,6 @@ class WebSocket {
         $upgrade_message .= "Sec-WebSocket-Version: 13\r\n";
         $upgrade_message .= "Connection: Upgrade\r\n";
         $upgrade_message .= "Sec-WebSocket-Accept:" . $upgrade_key . "\r\n\r\n";
-
         socket_write($socket, $upgrade_message, strlen($upgrade_message));// 向socket里写入升级信息
         $this->sockets[(int)$socket]['handshake'] = true;
 
